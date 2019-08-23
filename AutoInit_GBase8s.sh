@@ -31,7 +31,7 @@ PLOGSIZE=2048000
 LLOGSIZE=4096000
 SBSPACESIZE=4096000
 TEMPSIZE=4096000
-DATASIZE=10400000
+DATASIZE=10240000
 
 ##### Check env
 if [ ! x"$(whoami)" = "xroot" ]; then
@@ -268,6 +268,7 @@ su - ${USER_NAME} -c "onparams -p -d plogdbs -s $PLOGFILE -y >/dev/null 2>&1"
 loginfo "Adding 10 logical log file in llogdbs."
 LLOGFILE=$(echo $LLOGSIZE | awk '{printf("%d\n",substr($1,1,1) * 10 ^ (length($1) - 1))}')
 NEWFILE=$(expr $LLOGFILE / 10)
+[ $NEWFILE -gt 1000000 ] && NEWFILE=1000000
 for w in {1..10}
 do
   su - ${USER_NAME} -c "onparams -a -d llogdbs -s $NEWFILE >/dev/null 2>&1"
