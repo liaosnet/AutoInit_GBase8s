@@ -3,6 +3,7 @@
 # Filename: AutoInit_GBase8s.sh
 # Function: Auto install GBase 8s software and auto init database.
 # Write by: liaojinqing@gbase.cn
+# Version : 1.3.3
 ##################################################################
 ##### Defind env
 export LANG=C
@@ -10,21 +11,17 @@ loginfo(){
   echo -e "[$(date +'%Y-%m-%d %H:%M:%S')] $*"
 }
 
-DATADIR=${1:-/bigdata/gbase}
-loginfo "Datadir: $DATADIR"
-
+##### Define Parameter
 USER_NAME=gbasedbt
-USER_HOME=/home/${USER_NAME:-gbasedbt}
+USER_HOME=/home/gbase
 USER_PASS=GBase123
-INSTALL_DIR=/opt/${USER_NAME:-gbasedbt}
+INSTALL_DIR=/opt/gbase
 GBASESERVER=gbase01
 GBASELOCALE=zh_CN.utf8
 PORTNO=9088
-# IP use first IPADDR
-IPADDR=$(ifconfig -a | awk '/inet /{print (split($2,a,":")>1)?a[2]:$2;exit}')
-loginfo "IPADDR: ${IPADDR:-127.0.0.1}"
 
-WORKDIR=$(pwd)
+DATADIR=${1:-/opt/gbase/data}
+loginfo "Datadir: $DATADIR"
 ### dbspace init size.
 ROOTSIZE=1024000
 PLOGSIZE=2048000
@@ -33,34 +30,41 @@ SBSPACESIZE=4096000
 TEMPSIZE=4096000
 DATASIZE=10240000
 
+# IP use first IPADDR
+IPADDR=$(ifconfig -a | awk '/inet /{print (split($2,a,":")>1)?a[2]:$2;exit}')
+loginfo "IPADDR: ${IPADDR:-127.0.0.1}"
+
+WORKDIR=$(pwd)
 ##### Check env
 if [ ! x"$(whoami)" = "xroot" ]; then
   echo "Must run as user: root"
   exit 1
 fi 
 
+ENVCHECK=""
 SOFTPACKNAME=$(ls GBase*.tar 2>/dev/null)
 if [ x"$SOFTPACKNAME" = x ]; then
-  echo "Software not exists."
-  exit 1
+  ENVCHECK=${ENVCHECK}" 1) Software not exists.\n"
 fi
 
 if [ -x "/bin/unzip" -o -x "/usr/bin/unzip" ]; then
-  printf "";
+  loginfo "unzip check passed."
 else
-  echo "GBase 8s software install need: unzip"
-  exit 2
+  ENVCHECK=${ENVCHECK}" 2) unzip not exists.\n"
 fi
 if [ -x "/bin/tar" -o -x "/usr/bin/tar" ]; then
-  printf "";
+  loginfo "tar check passed."
 else
-  echo "GBase 8s software install need: tar"
-  exit 2
+  ENVCHECK=${ENVCHECK}" 3) tar not exists.\n"
 fi
 if [ -x "/bin/timeout" -o -x "/usr/bin/timeout" ]; then
-  printf "";
+  loginfo "timeout check passed."
 else
-  echo "This Auto Init Shell need: timeout"
+  ENVCHECK=${ENVCHECK}" 4) timeout not exists.\n"
+fi
+
+if [ ! x"${ENVCHECK}" = x ]; then
+  echo -e "ERROR found:\n"${ENVCHECK}
   exit 2
 fi
 
@@ -69,7 +73,7 @@ NUMCPU=$(awk '/^processor/{i++}END{printf("%d\n",i)}' /proc/cpuinfo)
 NUMMEM=$(awk '/^MemTotal:/{printf("%d\n",$2/1000)}' /proc/meminfo)
 
 if [ $NUMCPU -eq 0 ]; then
-  echo "Get cpu information error."
+  echo "GET cpu information error."
   exit 2 
 elif [ $NUMCPU -le 4 ]; then
   CPUVP=$NUMCPU
@@ -80,7 +84,7 @@ else
 fi
 
 if [ $NUMMEM -eq 0 ]; then
-  echo "Get mem information error."
+  echo "GET memory information error."
   exit 2
 elif [ $NUMMEM -le 8192 ]; then
   # mem less then 8G, use direct_io, only 2k buffpool
@@ -91,14 +95,24 @@ elif [ $NUMMEM -le 8192 ]; then
   CFG_LOCKS=$(expr ${MUTI:-1} \* 500000)
   CFG_SHMVIRTSIZE=$(expr ${MUTI:-1} \* 512000)
   CFG_2KPOOL=$(expr ${MUTI:-1} \* 500000)
-else
-  # mem big then 8G, not use direct_io, use 2k & 16k buffpool
+elif [ $NUMMEM -le 32768 ]; then
+  # mem >8G && < 32G, not use direct_io, use 2k & 16k buffpool
   PAGESIZE="-k 16"
   CFG_DIRECT_IO=0
-  CFG_LOCKS=2000000
+  MUTI=$(expr $NUMMEM / 8000)
+  [ $MUTI -eq 0 ] && MUTI=1
+  CFG_LOCKS=5000000
+  CFG_SHMVIRTSIZE=$(expr ${MUTI:-1} \* 512000)
+  CFG_2KPOOL=500000
+  CFG_16KPOOL=$(expr ${MUTI:-1} \* 250000)
+else
+  # mem > 32G
+  PAGESIZE="-k 16"
+  CFG_DIRECT_IO=0
+  CFG_LOCKS=5000000
   CFG_SHMVIRTSIZE=4096000
-  CFG_2KPOOL=200000
-  CFG_16KPOOL=200000  
+  CFG_2KPOOL=1000000
+  CFG_16KPOOL=1000000
 fi
 
 CFG_SHMADD=$(expr ${CFG_SHMVIRTSIZE:-1024000} / 4)
@@ -157,7 +171,7 @@ export PATH=\${GBASEDBTDIR}/bin:\${PATH}
 
 export DB_LOCALE=${GBASELOCALE:-zh_CN.utf8}
 export CLIENT_LOCALE=${GBASELOCALE:-zh_CN.utf8}
-export GL_USEGLU=1
+#export GL_USEGLU=1
 EOF
 
 # sqlhosts
@@ -328,7 +342,7 @@ sed -i "s#^SHMADD.*#SHMADD ${CFG_SHMADD}#g" $CFGFILE
 sed -i "s#^SHMTOTAL.*#SHMTOTAL ${CFG_SHMTOTAL}#g" $CFGFILE
 
 sed -i "s#^BUFFERPOOL.*size=2.*#BUFFERPOOL size=2K,buffers=${CFG_2KPOOL},lrus=8,lru_min_dirty=50,lru_max_dirty=60#g" $CFGFILE
-if [ $NUMMEM -gt 8192 ]; then
+if [ $NUMMEM -ge 8192 ]; then
   sed -i "s#^BUFFERPOOL.*size=16.*#BUFFERPOOL size=16K,buffers=${CFG_16KPOOL},lrus=8,lru_min_dirty=50,lru_max_dirty=60#g" $CFGFILE
 fi
 
