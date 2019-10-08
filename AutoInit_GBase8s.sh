@@ -1,9 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 ##################################################################
 # Filename: AutoInit_GBase8s.sh
 # Function: Auto install GBase 8s software and auto init database.
 # Write by: liaojinqing@gbase.cn
-# Version : 1.3.3
+# Version : 1.3.4   update date: 2019-10-08
 ##################################################################
 ##### Defind env
 export LANG=C
@@ -164,14 +164,18 @@ echo "USERS:daemon" > /etc/${USER_NAME}/allowed.surrogates
 # profile
 loginfo "Building ~${USER_NAME}/.bash_profile ."
 cat >> $USER_HOME/.bash_profile <<EOF 2>/dev/null
-export GBASEDBTDIR=${INSTALL_DIR}
-export GBASEDBTSERVER=${GBASESERVER}
+export $(echo $USER_NAME | tr [a-z] [A-Z])DIR=${INSTALL_DIR}
+export $(echo $USER_NAME | tr [a-z] [A-Z])SERVER=${GBASESERVER}
 export ONCONFIG=onconfig.\${GBASEDBTSERVER}
 export PATH=\${GBASEDBTDIR}/bin:\${PATH}
 
 export DB_LOCALE=${GBASELOCALE:-zh_CN.utf8}
 export CLIENT_LOCALE=${GBASELOCALE:-zh_CN.utf8}
 #export GL_USEGLU=1
+export DBDATE="Y4MD-"
+export GL_DATE="%iY-%m-%d"
+export GL_DATETIME="%iY-%m-%d %H:%M:%S"
+export DBACCESS_SHOW_TIME=1
 EOF
 
 # sqlhosts
