@@ -3,7 +3,7 @@
 # Filename: AutoInit_GBase8s.sh
 # Function: Auto install GBase 8s software and auto init database.
 # Write by: liaojinqing@gbase.cn
-# Version : 1.3.4   update date: 2019-10-08
+# Version : 1.3.5   update date: 2019-10-09
 ##################################################################
 ##### Defind env
 export LANG=C
@@ -40,6 +40,9 @@ if [ ! x"$(whoami)" = "xroot" ]; then
   echo "Must run as user: root"
   exit 1
 fi 
+if [ x"${USER_HOME}" = x"${INSTALL_DIR}" ]; then
+  INSTALL_DIR=${USER_HOME}/gbase
+fi  
 
 ENVCHECK=""
 SOFTPACKNAME=$(ls GBase*.tar 2>/dev/null)
@@ -119,7 +122,7 @@ CFG_SHMADD=$(expr ${CFG_SHMVIRTSIZE:-1024000} / 4)
 CFG_SHMTOTAL=$(expr $NUMMEM \* 900)
 
 ##### Create group and user
-loginfo "Creating group [${USER_NAME}] and user [${USER_NAME}]."
+loginfo "Creating group [${USER_NAME}] and user [${USER_NAME}] with HOME [$USER_HOME]."
 groupadd ${USER_NAME} 2>/dev/null
 if [ $? -gt 0 ]; then
   echo "Create group [${USER_NAME}] error."
@@ -147,6 +150,15 @@ cd ${WORKDIR}/install
 tar -xf ${WORKDIR}/${SOFTPACKNAME} 2>/dev/null
 if [ ! -x "ids_install" ]; then
   echo "ids_install not exists."
+  exit 4
+fi
+if [ -x "onsecurity" ]; then
+  loginfo "Check path INSTALL_DIR($INSTALL_DIR) security."
+  ${WORKDIR}/install/onsecurity $INSTALL_DIR >/dev/null 2>&1
+  if [ $? -gt 0 ]; then
+    echo "INSTALL_DIR: $INSTALL_DIR not security, Plase Check."
+    exit 5
+  fi
 fi
 
 mkdir -p $INSTALL_DIR 2>/dev/null
@@ -166,8 +178,8 @@ loginfo "Building ~${USER_NAME}/.bash_profile ."
 cat >> $USER_HOME/.bash_profile <<EOF 2>/dev/null
 export $(echo $USER_NAME | tr [a-z] [A-Z])DIR=${INSTALL_DIR}
 export $(echo $USER_NAME | tr [a-z] [A-Z])SERVER=${GBASESERVER}
-export ONCONFIG=onconfig.\${GBASEDBTSERVER}
-export PATH=\${GBASEDBTDIR}/bin:\${PATH}
+export ONCONFIG=onconfig.\${$(echo $USER_NAME | tr [a-z] [A-Z])SERVER}
+export PATH=\${$(echo $USER_NAME | tr [a-z] [A-Z])DIR}/bin:\${PATH}
 
 export DB_LOCALE=${GBASELOCALE:-zh_CN.utf8}
 export CLIENT_LOCALE=${GBASELOCALE:-zh_CN.utf8}
