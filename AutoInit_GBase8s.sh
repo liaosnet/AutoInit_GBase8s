@@ -75,20 +75,29 @@ fi
 NUMCPU=$(awk '/^processor/{i++}END{printf("%d\n",i)}' /proc/cpuinfo)
 NUMMEM=$(awk '/^MemTotal:/{printf("%d\n",$2/1000)}' /proc/meminfo)
 
-if [ $NUMCPU -eq 0 ]; then
+if [ ${NUMCPU:-0} -eq 0 ]; then
   echo "GET cpu information error."
   exit 2 
 elif [ $NUMCPU -le 4 ]; then
   CPUVP=$NUMCPU
-  CFG_NETPOOL=2
+  CFG_NETPOOL=1
 else
   CPUVP=$(expr $NUMCPU - 1)
   CFG_NETPOOL=$(expr $NUMCPU / 3)
 fi
 
-if [ $NUMMEM -eq 0 ]; then
+if [ ${NUMMEM:-0} -eq 0 ]; then
   echo "GET memory information error."
   exit 2
+elif [ $NUMMEM -le 4096 ]; then
+	# mem less then 4G, use direct_io, only 2k buffpool
+  PAGESIZE="-k 2"
+  CFG_DIRECT_IO=1
+  MUTI=$(expr $NUMMEM / 2000)
+  [ $MUTI -eq 0 ] && MUTI=1
+  CFG_LOCKS=$(expr ${MUTI:-1} \* 200000)
+  CFG_SHMVIRTSIZE=$(expr ${MUTI:-1} \* 256000)
+  CFG_2KPOOL=$(expr ${MUTI:-1} \* 100000)
 elif [ $NUMMEM -le 8192 ]; then
   # mem less then 8G, use direct_io, only 2k buffpool
   PAGESIZE="-k 2"
