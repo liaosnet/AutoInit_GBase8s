@@ -3,7 +3,7 @@
 # Filename: AutoInit_GBase8s.sh
 # Function: Auto install GBase 8s software and auto init database.
 # Write by: liaojinqing@gbase.cn
-# Version : 1.3.5   update date: 2019-10-09
+# Version : 1.3.6   update date: 2020-02-18
 ##################################################################
 ##### Defind env
 export LANG=C
@@ -23,6 +23,7 @@ PORTNO=9088
 DATADIR=${1:-/opt/gbase/data}
 loginfo "Datadir: $DATADIR"
 ### dbspace init size.
+DBS1GB=y
 ROOTSIZE=1024000
 PLOGSIZE=2048000
 LLOGSIZE=4096000
@@ -30,9 +31,14 @@ SBSPACESIZE=4096000
 TEMPSIZE=4096000
 DATASIZE=10240000
 
-# IP use first IPADDR
-IPADDR=$(ifconfig -a | awk '/inet /{print (split($2,a,":")>1)?a[2]:$2;exit}')
-loginfo "IPADDR: ${IPADDR:-127.0.0.1}"
+if [ x"$DBS1GB" = xy -o x"$DBS1GB" = xY ]; then
+  ROOTSIZE=1024000
+  PLOGSIZE=1024000
+  LLOGSIZE=1024000
+  SBSPACESIZE=1024000
+  TEMPSIZE=1024000
+  DATASIZE=1024000
+fi
 
 WORKDIR=$(pwd)
 ##### Check env
@@ -42,7 +48,13 @@ if [ ! x"$(whoami)" = "xroot" ]; then
 fi 
 if [ x"${USER_HOME}" = x"${INSTALL_DIR}" ]; then
   INSTALL_DIR=${USER_HOME}/gbase
-fi  
+fi
+if [ -d ${INSTALL_DIR} ] && [ ! x$(ls -A ${INSTALL_DIR}) = x ]; then
+  INSTALL_DIR=${INSTALL_DIR}/Server
+fi
+if [ -d ${DATADIR} ] && [ ! x$(ls -A ${DATADIR}) = x ]; then
+  DATADIR=${INSTALL_DIR}/data
+fi
 
 ENVCHECK=""
 SOFTPACKNAME=$(ls GBase*.tar 2>/dev/null)
@@ -50,6 +62,11 @@ if [ x"$SOFTPACKNAME" = x ]; then
   ENVCHECK=${ENVCHECK}" 1) Software not exists.\n"
 fi
 
+if [ -x "/sbin/ifconfig" -o -x "/usr/sbin/ifconfig" ]; then
+  loginfo "ifconfig check passed."
+else
+  ENVCHECK=${ENVCHECK}" 5) ifconfig not exists.\n" 
+fi
 if [ -x "/bin/unzip" -o -x "/usr/bin/unzip" ]; then
   loginfo "unzip check passed."
 else
@@ -71,6 +88,10 @@ if [ ! x"${ENVCHECK}" = x ]; then
   exit 2
 fi
 
+# IP use first IPADDR
+IPADDR=$(ifconfig -a | awk '/inet /{print (split($2,a,":")>1)?a[2]:$2;exit}')
+loginfo "IPADDR: ${IPADDR}"
+
 ##### Get env
 NUMCPU=$(awk '/^processor/{i++}END{printf("%d\n",i)}' /proc/cpuinfo)
 NUMMEM=$(awk '/^MemTotal:/{printf("%d\n",$2/1000)}' /proc/meminfo)
@@ -89,8 +110,15 @@ fi
 if [ ${NUMMEM:-0} -eq 0 ]; then
   echo "GET memory information error."
   exit 2
+elif [ $NUMMEM -le 2048 ]; then
+  # mem less then 1G, use direct_io, only 2k buffpool
+  PAGESIZE="-k 2"
+  CFG_DIRECT_IO=1
+  CFG_LOCKS=50000
+  CFG_SHMVIRTSIZE=384000
+  CFG_2KPOOL=50000 
 elif [ $NUMMEM -le 4096 ]; then
-	# mem less then 4G, use direct_io, only 2k buffpool
+  # mem less then 4G, use direct_io, only 2k buffpool
   PAGESIZE="-k 2"
   CFG_DIRECT_IO=1
   MUTI=$(expr $NUMMEM / 2000)
@@ -176,7 +204,7 @@ chmod 755 $INSTALL_DIR 2>/dev/null
 
 # ids_install
 loginfo "Execute software install, this will take a moment."
-timeout 600 ${WORKDIR}/install/ids_install -i silent -DLICENSE_ACCEPTED=TRUE -DUSER_INSTALL_DIR=${INSTALL_DIR:-/opt/${USER_NAME}}
+timeout 1800 ${WORKDIR}/install/ids_install -i silent -DLICENSE_ACCEPTED=TRUE -DUSER_INSTALL_DIR=${INSTALL_DIR:-/opt/${USER_NAME}}
 
 ###### Init database
 [ ! -d /etc/${USER_NAME} ] && mkdir -p /etc/${USER_NAME} 2>/dev/null
@@ -192,7 +220,7 @@ export PATH=\${$(echo $USER_NAME | tr [a-z] [A-Z])DIR}/bin:\${PATH}
 
 export DB_LOCALE=${GBASELOCALE:-zh_CN.utf8}
 export CLIENT_LOCALE=${GBASELOCALE:-zh_CN.utf8}
-#export GL_USEGLU=1
+export GL_USEGLU=1
 export DBDATE="Y4MD-"
 export GL_DATE="%iY-%m-%d"
 export GL_DATETIME="%iY-%m-%d %H:%M:%S"
@@ -201,7 +229,7 @@ EOF
 
 # sqlhosts
 loginfo "Building ${INSTALL_DIR}/etc/sqlhosts ."
-echo "$GBASESERVER onsoctcp $IPADDR $PORTNO" > $INSTALL_DIR/etc/sqlhosts
+echo "$GBASESERVER onsoctcp ${IPADDR:-127.0.0.1} ${PORTNO:-9088}" > $INSTALL_DIR/etc/sqlhosts
 chown ${USER_NAME}:${USER_NAME} $INSTALL_DIR/etc/sqlhosts
 
 # onconfig
@@ -232,7 +260,7 @@ cd $TMPDIR
 
 # oninit
 loginfo "Start run database init: oninit -ivy"
-su - ${USER_NAME} -c "timeout 600 oninit -ivy"
+su - ${USER_NAME} -c "timeout 1800 oninit -ivy"
 
 echo -e "OK"
 loginfo "Creating system database.\c"
@@ -357,6 +385,11 @@ sed -i "s#^DS_TOTAL_MEMORY.*#DS_TOTAL_MEMORY 1024000#g" $CFGFILE
 sed -i "s#^DS_NONPDQ_QUERY_MEM.*#DS_NONPDQ_QUERY_MEM 256000#g" $CFGFILE
 sed -i "s#^TEMPTAB_NOLOG.*#TEMPTAB_NOLOG 1#g" $CFGFILE
 sed -i "s#^DUMPSHMEM.*#DUMPSHMEM 0#g" $CFGFILE
+
+if [ $NUMMEM -le 4096 ]; then
+  sed -i "s#^DS_TOTAL_MEMORY.*#DS_TOTAL_MEMORY 128000#g" $CFGFILE
+  sed -i "s#^DS_NONPDQ_QUERY_MEM.*#DS_NONPDQ_QUERY_MEM 32000#g" $CFGFILE
+fi
 # dynamic value
 sed -i "s#^NETTYPE.*#NETTYPE soctcp,${CFG_NETPOOL},200,CPU#g" $CFGFILE
 sed -i "s#^VPCLASS.*cpu.*#VPCLASS cpu,num=${CPUVP},noage#g" $CFGFILE
@@ -373,9 +406,9 @@ fi
 
 ####### restart database
 loginfo "Restart GBase 8s Database Server."
-su - ${USER_NAME} -c "timeout 300 onmode -ky"
+su - ${USER_NAME} -c "timeout 1800 onmode -ky"
 sleep 5
-su - ${USER_NAME} -c "timeout 300 oninit -vy"
+su - ${USER_NAME} -c "timeout 1800 oninit -vy"
 loginfo "Finish."
 
 exit 0
