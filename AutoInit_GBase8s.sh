@@ -3,7 +3,7 @@
 # Filename: AutoInit_GBase8s.sh
 # Function: Auto install GBase 8s software and auto init database.
 # Write by: liaojinqing@gbase.cn
-# Version : 1.3.6   update date: 2020-02-18
+# Version : 1.3.7   update date: 2020-03-09
 ##################################################################
 ##### Defind env
 export LANG=C
@@ -20,8 +20,7 @@ GBASESERVER=gbase01
 GBASELOCALE=zh_CN.utf8
 PORTNO=9088
 
-DATADIR=${1:-/opt/gbase/data}
-loginfo "Datadir: $DATADIR"
+DATADIR=${1:-/data/gbase}
 ### dbspace init size.
 DBS1GB=y
 ROOTSIZE=1024000
@@ -49,10 +48,10 @@ fi
 if [ x"${USER_HOME}" = x"${INSTALL_DIR}" ]; then
   INSTALL_DIR=${USER_HOME}/gbase
 fi
-if [ -d ${INSTALL_DIR} ] && [ ! x$(ls -A ${INSTALL_DIR}) = x ]; then
+if [ -d ${INSTALL_DIR} ] && [ ! x"$(ls -A ${INSTALL_DIR})" = x ]; then
   INSTALL_DIR=${INSTALL_DIR}/Server
 fi
-if [ -d ${DATADIR} ] && [ ! x$(ls -A ${DATADIR}) = x ]; then
+if [ -d ${DATADIR} ] && [ ! x"$(ls -A ${DATADIR})" = x ]; then
   DATADIR=${INSTALL_DIR}/data
 fi
 
@@ -91,6 +90,7 @@ fi
 # IP use first IPADDR
 IPADDR=$(ifconfig -a | awk '/inet /{print (split($2,a,":")>1)?a[2]:$2;exit}')
 loginfo "IPADDR: ${IPADDR}"
+loginfo "Datadir: $DATADIR"
 
 ##### Get env
 NUMCPU=$(awk '/^processor/{i++}END{printf("%d\n",i)}' /proc/cpuinfo)
@@ -121,11 +121,9 @@ elif [ $NUMMEM -le 4096 ]; then
   # mem less then 4G, use direct_io, only 2k buffpool
   PAGESIZE="-k 2"
   CFG_DIRECT_IO=1
-  MUTI=$(expr $NUMMEM / 2000)
-  [ $MUTI -eq 0 ] && MUTI=1
-  CFG_LOCKS=$(expr ${MUTI:-1} \* 200000)
-  CFG_SHMVIRTSIZE=$(expr ${MUTI:-1} \* 256000)
-  CFG_2KPOOL=$(expr ${MUTI:-1} \* 100000)
+  CFG_LOCKS=200000
+  CFG_SHMVIRTSIZE=512000
+  CFG_2KPOOL=100000
 elif [ $NUMMEM -le 8192 ]; then
   # mem less then 8G, use direct_io, only 2k buffpool
   PAGESIZE="-k 2"
@@ -142,7 +140,7 @@ elif [ $NUMMEM -le 32768 ]; then
   MUTI=$(expr $NUMMEM / 8000)
   [ $MUTI -eq 0 ] && MUTI=1
   CFG_LOCKS=5000000
-  CFG_SHMVIRTSIZE=$(expr ${MUTI:-1} \* 512000)
+  CFG_SHMVIRTSIZE=$(expr ${MUTI:-1} \* 1024000)
   CFG_2KPOOL=500000
   CFG_16KPOOL=$(expr ${MUTI:-1} \* 250000)
 else
@@ -237,7 +235,7 @@ CFGFILE=$INSTALL_DIR/etc/onconfig.$GBASESERVER
 cp $INSTALL_DIR/etc/onconfig.std $CFGFILE
 loginfo "Building $CFGFILE ."
 
-sed -i "s#^ROOTPATH.*#ROOTPATH $DATADIR/rootdbs#g" $CFGFILE
+sed -i "s#^ROOTPATH.*#ROOTPATH $DATADIR/rootchk#g" $CFGFILE
 sed -i "s#^ROOTSIZE.*#ROOTSIZE $ROOTSIZE#g" $CFGFILE
 sed -i "s#^DBSERVERNAME.*#DBSERVERNAME $GBASESERVER#g" $CFGFILE
 sed -i "s#^LTAPEDEV.*#LTAPEDEV /dev/null#g" $CFGFILE
@@ -252,10 +250,10 @@ mkdir -p $DATADIR
 chown ${USER_NAME}:${USER_NAME} $DATADIR
 TMPDIR=$(pwd)
 cd $DATADIR
-> rootdbs
-touch plogdbs llogdbs sbspace1 tempdbs1 datadbs1
-chown ${USER_NAME}:${USER_NAME} rootdbs plogdbs llogdbs sbspace1 tempdbs1 datadbs1
-chmod 660 rootdbs plogdbs llogdbs sbspace1 tempdbs1 datadbs1
+> rootchk
+touch plogchk llogchk sbspace01 tempchk01 datachk01
+chown ${USER_NAME}:${USER_NAME} rootchk plogchk llogchk sbspace01 tempchk01 datachk01
+chmod 660 rootchk plogchk llogchk sbspace01 tempchk01 datachk01
 cd $TMPDIR
 
 # oninit
@@ -287,22 +285,22 @@ done
 ## create dbspace.
 echo -e ""
 loginfo "Creating dbspace plogdbs."
-su - ${USER_NAME} -c "onspaces -c -d plogdbs -p $DATADIR/plogdbs -o 0 -s $PLOGSIZE >/dev/null 2>&1"
+su - ${USER_NAME} -c "onspaces -c -d plogdbs -p $DATADIR/plogchk -o 0 -s $PLOGSIZE >/dev/null 2>&1"
 
 loginfo "Creating dbspace llogdbs."
-su - ${USER_NAME} -c "onspaces -c -d llogdbs -p $DATADIR/llogdbs -o 0 -s $LLOGSIZE >/dev/null 2>&1"
+su - ${USER_NAME} -c "onspaces -c -d llogdbs -p $DATADIR/llogchk -o 0 -s $LLOGSIZE >/dev/null 2>&1"
 
-loginfo "Creating dbspace tempdbs1"
-su - ${USER_NAME} -c "onspaces -c -d tempdbs1 -p $DATADIR/tempdbs1 -t -o 0 -s $TEMPSIZE $PAGESIZE >/dev/null 2>&1"
+loginfo "Creating dbspace tempdbs01"
+su - ${USER_NAME} -c "onspaces -c -d tempdbs01 -p $DATADIR/tempchk01 -t -o 0 -s $TEMPSIZE $PAGESIZE >/dev/null 2>&1"
 
-loginfo "Creating smart blob space sbspace1"
-su - ${USER_NAME} -c "onspaces -c -S sbspace1 -p $DATADIR/sbspace1 -o 0 -s $SBSPACESIZE >/dev/null 2>&1"
+loginfo "Creating smart blob space sbspace01"
+su - ${USER_NAME} -c "onspaces -c -S sbspace01 -p $DATADIR/sbspace01 -o 0 -s $SBSPACESIZE >/dev/null 2>&1"
 
-loginfo "Creating dbspace datadbs1"
-su - ${USER_NAME} -c "onspaces -c -d datadbs1 -p $DATADIR/datadbs1 -o 0 -s $DATASIZE $PAGESIZE >/dev/null 2>&1"
+loginfo "Creating dbspace datadbs01"
+su - ${USER_NAME} -c "onspaces -c -d datadbs01 -p $DATADIR/datachk01 -o 0 -s $DATASIZE $PAGESIZE >/dev/null 2>&1"
 
 ## change chunk extend able on
-loginfo "Changing auto extend able on for chunk datadbs1"
+loginfo "Changing auto extend able on for chunk datadbs01"
 ADMIN_SQLFILE=${INSTALL_DIR}/temp/admin_sqlfile.sql
 mkdir -p ${INSTALL_DIR}/temp
 cat << ! > $ADMIN_SQLFILE 2>&1
@@ -370,9 +368,9 @@ fi
 loginfo "Optimizing database config."
 sed -i "s#^PHYSBUFF.*#PHYSBUFF 1024#g" $CFGFILE
 sed -i "s#^LOGBUFF.*#LOGBUFF 1024#g" $CFGFILE
-sed -i "s#^DBSPACETEMP.*#DBSPACETEMP tempdbs1#g" $CFGFILE
-sed -i "s#^SBSPACENAME.*#SBSPACENAME sbspace1#g" $CFGFILE
-sed -i "s#^SYSSBSPACENAME.*#SYSSBSPACENAME sbspace1#g" $CFGFILE
+sed -i "s#^DBSPACETEMP.*#DBSPACETEMP tempdbs01#g" $CFGFILE
+sed -i "s#^SBSPACENAME.*#SBSPACENAME sbspace01#g" $CFGFILE
+sed -i "s#^SYSSBSPACENAME.*#SYSSBSPACENAME sbspace01#g" $CFGFILE
 sed -i "s#^NUMFDSERVERS.*#NUMFDSERVERS 32#g" $CFGFILE
 sed -i "s#^MULTIPROCESSOR.*#MULTIPROCESSOR 1#g" $CFGFILE
 sed -i "s#^AUTO_TUNE.*#AUTO_TUNE 0#g" $CFGFILE
