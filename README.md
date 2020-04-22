@@ -1,58 +1,56 @@
 # GBase8s自动初化脚本使用说明
 ### 脚本名称：AutoInit_GBase8s.sh
-功能：自动解压同一目录下的GBase 8s安装包，并执行数据库软件安装，数据库初始化，同时根据操作系统资源进行一定的数据库参数优化操作。最终生成可用的数据库环境。
-适用性：适用于x86_64架构下的RHEL6(或者类似的CentOS)操作系统环境。
+功能：自动解压同一目录下的GBase 8s安装包，并执行数据库软件安装，数据库初始化，同时根据操作系统资源进行一定的数据库参数优化操作。最终生成可用的数据库环境。  
+适用性：适用于x86_64架构下的RHEL6(或者类似的CentOS)操作系统环境。  
 
 ### 完成后的JDBC连接
-DriverName：com.gbasedbt.jdbc.Driver
-URL(直接指定服务器)：jdbc:gbasedbt-sqli://<IPADDR>:9088/<DBNAME>:GBASEDBTSERVER=gbase01;DB_LOCALE=zh_CN.utf8;CLIENT_LOCALE=zh_CN.utf8;IFX_LOCK_MODE_WAIT=10;IFX_ISOLATION_LEVEL=5;
-其中：<IPADDR>为实际IP地址，<DBNAME>为数据库名称
+DriverName：com.gbasedbt.jdbc.Driver  
+URL(直接指定服务器)：jdbc:gbasedbt-sqli://<IPADDR>:9088/<DBNAME>:GBASEDBTSERVER=gbase01;DB_LOCALE=zh_CN.utf8;CLIENT_LOCALE=zh_CN.utf8;IFX_LOCK_MODE_WAIT=10;IFX_ISOLATION_LEVEL=5;  
+其中：<IPADDR>为实际IP地址，<DBNAME>为数据库名称  
 
 ## 使用说明：
 ### 1，将脚本AutoInit_GBase8s.sh与GBase 8s安装包放置同一目录下。
 ```text
 [root@bd ~]# ll
 total 309172
--rwxr-xr-x  1 root root     13077 Mar  9 21:39 AutoInit_GBase8s.sh*
--rwxr-xr-x  1 root root       897 Feb 24 11:37 CleanAll.sh*
--rw-r--r--  1 root root 316641280 Mar  4 17:34 GBase8sV8.7_AEE_2.0.1A2_2_RHEL6_x86_64.tar
-
+-rwxr-xr-x 1 root root     14130 Apr 22 15:58 AutoInit_GBase8s.sh
+-rwxr-xr-x 1 root root       921 Apr 22 15:38 CleanAll.sh
+-rw-r--r-- 1 root root 316641280 Apr 22 14:57 GBase8sV8.8_AEE_2.0.1A2_2_RHEL6_x86_64.tar
 ```
 ### 2，执行安装
 ```text
 [root@bd ~]# bash AutoInit_GBase8s.sh
-[2020-03-09 21:39:35] ifconfig check passed.
-[2020-03-09 21:39:35] unzip check passed.
-[2020-03-09 21:39:35] tar check passed.
-[2020-03-09 21:39:35] timeout check passed.
-[2020-03-09 21:39:35] IPADDR: 192.168.0.4
-[2020-03-09 21:39:35] Datadir: /data/gbase
-[2020-03-09 21:39:35] Creating group [gbasedbt] and user [gbasedbt] with HOME [/home/gbase].
-[2020-03-09 21:39:35] Unziping [GBase8sV8.7_AEE_2.0.1A2_2_RHEL6_x86_64.tar].
-[2020-03-09 21:39:39] Check path INSTALL_DIR(/opt/gbase) security.
-[2020-03-09 21:39:39] Execute software install, this will take a moment.
-
+[2020-04-22 15:44:40] ifconfig check passed.
+[2020-04-22 15:44:40] unzip check passed.
+[2020-04-22 15:44:40] tar check passed.
+[2020-04-22 15:44:40] timeout check passed.
+[2020-04-22 15:44:40] IPADDR: 192.168.0.4
+[2020-04-22 15:44:40] Datadir: /data/gbase
+[2020-04-22 15:44:40] Creating group [gbasedbt] and user [gbasedbt] with HOME [/home/gbase].
+[2020-04-22 15:44:40] Unziping [GBase8sV8.8_AEE_2.0.1A2_2_RHEL6_x86_64.tar].
+[2020-04-22 15:44:44] Check path INSTALL_DIR(/opt/gbase) security.
+[2020-04-22 15:44:44] Execute software install, this will take a moment.
 ```
-说明：不带参数将使用默认的DATADIR=/data/gbase，该目录用于存放数据库空间文件。或者实际不使用该目录，应加参数指定，如： AutoInit_GBase8s.sh -d /gbasedata/dbs 指定使用的空间为/gbasedata/dbs。
-注：指定的目录应有足够的空间，不少于100G。
+说明：不带参数将使用默认的DATADIR=/data/gbase，该目录用于存放数据库空间文件。或者实际不使用该目录，应加参数指定，如： AutoInit_GBase8s.sh -d /gbasedata/dbs 指定使用的空间为/gbasedata/dbs。  
+注：指定的目录应有足够的空间，不少于100G。  
 安装过程中将打印安装过程，日志如下：
 ```text
 [root@bd ~]# bash AutoInit_GBase8s.sh
- [2020-03-09 21:39:35] ifconfig check passed.
-[2020-03-09 21:39:35] unzip check passed.
-[2020-03-09 21:39:35] tar check passed.
-[2020-03-09 21:39:35] timeout check passed.
-[2020-03-09 21:39:35] IPADDR: 192.168.0.4
-[2020-03-09 21:39:35] Datadir: /data/gbase
-[2020-03-09 21:39:35] Creating group [gbasedbt] and user [gbasedbt] with HOME [/home/gbase].
-[2020-03-09 21:39:35] Unziping [GBase8sV8.7_AEE_2.0.1A2_2_RHEL6_x86_64.tar].
-[2020-03-09 21:39:39] Check path INSTALL_DIR(/opt/gbase) security.
-[2020-03-09 21:39:39] Execute software install, this will take a moment.
-[2020-03-09 21:41:24] Building ~gbasedbt/.bash_profile .
-[2020-03-09 21:41:24] Building /opt/gbase/etc/sqlhosts .
-[2020-03-09 21:41:24] Building /opt/gbase/etc/onconfig.gbase01 .
-[2020-03-09 21:41:24] Creating DATADIR: /data/gbase .
-[2020-03-09 21:41:24] Start run database init: oninit -ivy
+[2020-04-22 15:44:40] ifconfig check passed.
+[2020-04-22 15:44:40] unzip check passed.
+[2020-04-22 15:44:40] tar check passed.
+[2020-04-22 15:44:40] timeout check passed.
+[2020-04-22 15:44:40] IPADDR: 192.168.0.4
+[2020-04-22 15:44:40] Datadir: /data/gbase
+[2020-04-22 15:44:40] Creating group [gbasedbt] and user [gbasedbt] with HOME [/home/gbase].
+[2020-04-22 15:44:40] Unziping [GBase8sV8.8_AEE_2.0.1A2_2_RHEL6_x86_64.tar].
+[2020-04-22 15:44:44] Check path INSTALL_DIR(/opt/gbase) security.
+[2020-04-22 15:44:44] Execute software install, this will take a moment.
+[2020-04-22 15:46:37] Building ~gbasedbt/.bash_profile .
+[2020-04-22 15:46:37] Building /opt/gbase/etc/sqlhosts .
+[2020-04-22 15:46:37] Building /opt/gbase/etc/onconfig.gbase01 .
+[2020-04-22 15:46:37] Creating DATADIR: /data/gbase .
+[2020-04-22 15:46:37] Start run database init: oninit -ivy
 Reading configuration file '/opt/gbase/etc/onconfig.gbase01'...succeeded
 Creating /GBASEDBTTMP/.infxdirs...succeeded
 Allocating and attaching to shared memory...succeeded
@@ -91,21 +89,21 @@ Creating periodic thread...succeeded
 Starting scheduling system...succeeded
 Verbose output complete: mode = 5
 OK
-[2020-03-09 21:41:40] Creating system database.......
-[2020-03-09 21:41:58] Creating dbspace plogdbs.
-[2020-03-09 21:42:06] Creating dbspace llogdbs.
-[2020-03-09 21:42:14] Creating dbspace tempdbs01
-[2020-03-09 21:42:22] Creating smart blob space sbspace01
-[2020-03-09 21:42:32] Creating dbspace datadbs01
-[2020-03-09 21:42:39] Changing auto extend able on for chunk datadbs01
-[2020-03-09 21:42:40] Creating default user for mapping user
-[2020-03-09 21:42:40] Moving physical log to plogdbs.
-[2020-03-09 21:42:50] Adding 10 logical log file in llogdbs.
-[2020-03-09 21:42:59] Moving CURRENT logical log to new logical file.
-[2020-03-09 21:43:10] Droping logical log file which in rootdbs.
-[2020-03-09 21:43:11] Creating file $INSTALL_DIR/etc/sysadmin/stop .
-[2020-03-09 21:43:11] Optimizing database config.
-[2020-03-09 21:43:11] Restart GBase 8s Database Server.
+[2020-04-22 15:46:54] Creating system database.......
+[2020-04-22 15:47:13] Creating dbspace plogdbs.
+[2020-04-22 15:47:21] Creating dbspace llogdbs.
+[2020-04-22 15:47:29] Creating dbspace tempdbs01
+[2020-04-22 15:47:37] Creating smart blob space sbspace01
+[2020-04-22 15:47:45] Creating dbspace datadbs01
+[2020-04-22 15:47:53] Changing auto extend able on for chunk datadbs01
+[2020-04-22 15:47:53] Creating default user for mapping user
+[2020-04-22 15:47:54] Moving physical log to plogdbs.
+[2020-04-22 15:48:05] Adding 10 logical log file in llogdbs.
+[2020-04-22 15:48:16] Moving CURRENT logical log to new logical file.
+[2020-04-22 15:48:29] Droping logical log file which in rootdbs.
+[2020-04-22 15:48:30] Creating file $INSTALL_DIR/etc/sysadmin/stop .
+[2020-04-22 15:48:30] Optimizing database config.
+[2020-04-22 15:48:30] Restart GBase 8s Database Server.
 Reading configuration file '/opt/gbase/etc/onconfig.gbase01'...succeeded
 Creating /GBASEDBTTMP/.infxdirs...succeeded
 Allocating and attaching to shared memory...succeeded
@@ -143,7 +141,8 @@ Creating periodic thread...succeeded
 Creating periodic thread...succeeded
 Starting scheduling system...succeeded
 Verbose output complete: mode = 5
-[2020-03-09 21:43:29] Finish.
+[2020-04-22 15:48:49] Create database testdb.
+[2020-04-22 15:48:50] Finish.
 ```
 创建的数据库状态如下：
 ```text
