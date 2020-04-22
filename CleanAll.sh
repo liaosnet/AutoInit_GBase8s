@@ -6,7 +6,8 @@
 ##### Define Parameter
 USER_NAME=$(awk -F'=' '/^USER_NAME/{print $2}' AutoInit_GBase8s.sh)
 USER_HOME=$(awk -F'=' '/^USER_HOME/{print $2}' AutoInit_GBase8s.sh)
-INSTALL_DIR=$(awk -F'=' '/^INSTALL_DIR/{print $2}' AutoInit_GBase8s.sh)
+#INSTALL_DIR=$(awk -F'=' '/^INSTALL_DIR/{print $2}' AutoInit_GBase8s.sh)
+INSTALL_DIR=/opt/gbase
 WORKDIR=$(pwd)
 
 #### do clean

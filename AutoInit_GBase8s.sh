@@ -3,26 +3,61 @@
 # Filename: AutoInit_GBase8s.sh
 # Function: Auto install GBase 8s software and auto init database.
 # Write by: liaojinqing@gbase.cn
-# Version : 1.3.7   update date: 2020-03-09
+# Version : 1.3.8   update date: 2020-04-22
 ##################################################################
 ##### Defind env
 export LANG=C
 loginfo(){
   echo -e "[$(date +'%Y-%m-%d %H:%M:%S')] $*"
 }
+##### Get Parameter
+while [[ $# -gt 0 ]]
+do
+  key="$1"
+  case $key in
+    -d)
+        DATADIR="$2";     shift 2
+        ;;
+    -i)
+        INSTALL_DIR="$2"; shift 2
+        ;;
+    -p)
+        USER_HOME="$2";   shift 2
+        ;;
+    -s)
+        DBS1GB="$2";      shift 2
+        ;;
+    -l)
+        GBASELOCALE="$2"; shift 2
+        ;;
+    *)
+        cat <<!
+Usage:
+    AutoInit_GBase8s.sh [-d path] [-i path] [-p path] [-s y|n] [-l locale] 
 
+        -d path    The path of dbspace.
+        -i path    The path of install software.
+        -p path    The path of home path.
+        -s y|n     Value of dbspace is 1GB? Yes/No.
+        -l locale  DB_LOCALE/CLIENT_LOCALE value.
+
+!
+        exit 1
+        ;;
+  esac
+done
 ##### Define Parameter
 USER_NAME=gbasedbt
-USER_HOME=/home/gbase
+USER_HOME=${USER_HOME:-/home/gbase}
 USER_PASS=GBase123
-INSTALL_DIR=/opt/gbase
+INSTALL_DIR=${INSTALL_DIR:-/opt/gbase}
 GBASESERVER=gbase01
-GBASELOCALE=zh_CN.utf8
+GBASELOCALE=${GBASELOCALE:-zh_CN.utf8}
 PORTNO=9088
 
-DATADIR=${1:-/data/gbase}
+DATADIR=${DATADIR:-/data/gbase}
 ### dbspace init size.
-DBS1GB=y
+DBS1GB=${DBS1GB:-y}
 ROOTSIZE=1024000
 PLOGSIZE=2048000
 LLOGSIZE=4096000
@@ -169,8 +204,8 @@ if [ $? -gt 0 ]; then
   exit 3
 fi
 passwd ${USER_NAME} <<EOF >/dev/null 2>&1
-${USER_PASS:-GBase123}
-${USER_PASS:-GBase123}
+${USER_PASS}
+${USER_PASS}
 EOF
 mkdir -p ${USER_HOME}/users 2>/dev/null
 chmod 755 ${USER_HOME} 2>/dev/null
@@ -216,8 +251,8 @@ export $(echo $USER_NAME | tr [a-z] [A-Z])SERVER=${GBASESERVER}
 export ONCONFIG=onconfig.\${$(echo $USER_NAME | tr [a-z] [A-Z])SERVER}
 export PATH=\${$(echo $USER_NAME | tr [a-z] [A-Z])DIR}/bin:\${PATH}
 
-export DB_LOCALE=${GBASELOCALE:-zh_CN.utf8}
-export CLIENT_LOCALE=${GBASELOCALE:-zh_CN.utf8}
+export DB_LOCALE=${GBASELOCALE}
+export CLIENT_LOCALE=${GBASELOCALE}
 export GL_USEGLU=1
 export DBDATE="Y4MD-"
 export GL_DATE="%iY-%m-%d"
@@ -407,6 +442,20 @@ loginfo "Restart GBase 8s Database Server."
 su - ${USER_NAME} -c "timeout 1800 onmode -ky"
 sleep 5
 su - ${USER_NAME} -c "timeout 1800 oninit -vy"
+
+### Build default database: testdb
+loginfo "Create database testdb."
+CRDB_SQLFILE=${INSTALL_DIR}/temp/crdb_sqlfile.sql
+mkdir -p ${INSTALL_DIR}/temp
+cat << ! > $CRDB_SQLFILE 2>&1
+create database testdb in datadbs01 with log;
+!
+if [ -s $CRDB_SQLFILE ]; then
+  chown ${USER_NAME}:${USER_NAME} ${INSTALL_DIR}/temp
+  chown ${USER_NAME}:${USER_NAME} $CRDB_SQLFILE
+  su - ${USER_NAME} -c "dbaccess sysmaster $CRDB_SQLFILE >/dev/null 2>&1"
+fi
+
 loginfo "Finish."
 
 exit 0

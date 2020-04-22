@@ -1,7 +1,7 @@
 # GBase8s自动初化脚本使用说明
 ### 脚本名称：AutoInit_GBase8s.sh
 功能：自动解压同一目录下的GBase 8s安装包，并执行数据库软件安装，数据库初始化，同时根据操作系统资源进行一定的数据库参数优化操作。最终生成可用的数据库环境。
-适用性：适用于x86_64架构下的RHEL(或者类似的CentOS)操作系统环境。
+适用性：适用于x86_64架构下的RHEL6(或者类似的CentOS)操作系统环境。
 
 ### 完成后的JDBC连接
 DriverName：com.gbasedbt.jdbc.Driver
@@ -33,7 +33,7 @@ total 309172
 [2020-03-09 21:39:39] Execute software install, this will take a moment.
 
 ```
-说明：不带参数将使用默认的DATADIR=/opt/gbase/data，该目录用于存放数据库空间文件。或者实际不使用该目录，应加参数指定，如： AutoInit_GBase8s.sh  /gbasedata/dbs 指定使用的空间为/gbasedata/dbs。
+说明：不带参数将使用默认的DATADIR=/data/gbase，该目录用于存放数据库空间文件。或者实际不使用该目录，应加参数指定，如： AutoInit_GBase8s.sh -d /gbasedata/dbs 指定使用的空间为/gbasedata/dbs。
 注：指定的目录应有足够的空间，不少于100G。
 安装过程中将打印安装过程，日志如下：
 ```text
