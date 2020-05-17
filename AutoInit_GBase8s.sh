@@ -3,7 +3,7 @@
 # Filename: AutoInit_GBase8s.sh
 # Function: Auto install GBase 8s software and auto init database.
 # Write by: liaojinqing@gbase.cn
-# Version : 1.3.8   update date: 2020-04-22
+# Version : 1.3.9   update date: 2020-05-17
 ##################################################################
 ##### Defind env
 export LANG=C
@@ -165,9 +165,9 @@ elif [ $NUMMEM -le 8192 ]; then
   CFG_DIRECT_IO=1
   MUTI=$(expr $NUMMEM / 2000)
   [ $MUTI -eq 0 ] && MUTI=1
-  CFG_LOCKS=$(expr ${MUTI:-1} \* 500000)
-  CFG_SHMVIRTSIZE=$(expr ${MUTI:-1} \* 512000)
-  CFG_2KPOOL=$(expr ${MUTI:-1} \* 500000)
+  CFG_LOCKS=1000000
+  CFG_SHMVIRTSIZE=$(awk -v n="$MUTI" 'BEGIN{print (n-1)*512000}')
+  CFG_2KPOOL=$(awk -v n="$MUTI" 'BEGIN{print (n-1)*500000}')
 elif [ $NUMMEM -le 32768 ]; then
   # mem >8G && < 32G, not use direct_io, use 2k & 16k buffpool
   PAGESIZE="-k 16"
@@ -175,9 +175,9 @@ elif [ $NUMMEM -le 32768 ]; then
   MUTI=$(expr $NUMMEM / 8000)
   [ $MUTI -eq 0 ] && MUTI=1
   CFG_LOCKS=5000000
-  CFG_SHMVIRTSIZE=$(expr ${MUTI:-1} \* 1024000)
+  CFG_SHMVIRTSIZE=$(awk -v n="$MUTI" 'BEGIN{print (n-1)*1024000}')
   CFG_2KPOOL=500000
-  CFG_16KPOOL=$(expr ${MUTI:-1} \* 250000)
+  CFG_16KPOOL=$(awk -v n="$MUTI" 'BEGIN{print (n-1)*250000}')
 else
   # mem > 32G
   PAGESIZE="-k 16"
@@ -262,7 +262,7 @@ EOF
 
 # sqlhosts
 loginfo "Building ${INSTALL_DIR}/etc/sqlhosts ."
-echo "$GBASESERVER onsoctcp ${IPADDR:-127.0.0.1} ${PORTNO:-9088}" > $INSTALL_DIR/etc/sqlhosts
+echo "$GBASESERVER onsoctcp ${IPADDR:-0.0.0.0} ${PORTNO:-9088}" > $INSTALL_DIR/etc/sqlhosts
 chown ${USER_NAME}:${USER_NAME} $INSTALL_DIR/etc/sqlhosts
 
 # onconfig
@@ -418,6 +418,7 @@ sed -i "s#^DS_TOTAL_MEMORY.*#DS_TOTAL_MEMORY 1024000#g" $CFGFILE
 sed -i "s#^DS_NONPDQ_QUERY_MEM.*#DS_NONPDQ_QUERY_MEM 256000#g" $CFGFILE
 sed -i "s#^TEMPTAB_NOLOG.*#TEMPTAB_NOLOG 1#g" $CFGFILE
 sed -i "s#^DUMPSHMEM.*#DUMPSHMEM 0#g" $CFGFILE
+sed -i "s#^IFX_FOLDVIEW.*#IFX_FOLDVIEW 0#g" $CFGFILE
 
 if [ $NUMMEM -le 4096 ]; then
   sed -i "s#^DS_TOTAL_MEMORY.*#DS_TOTAL_MEMORY 128000#g" $CFGFILE
@@ -457,5 +458,21 @@ if [ -s $CRDB_SQLFILE ]; then
 fi
 
 loginfo "Finish."
+cat <<EOF
+
+--== GBase 8s Information for this install ==--
+\$GBASEDBTSERVER : $GBASESERVER
+\$GBASEDBTDIR    : $INSTALL_DIR
+USER HOME       : $USER_HOME
+DBSPACE DIR     : $DATADIR
+IP ADDRESS      : $IPADDR
+PORT NUMBER     : $PORTNO
+\$DB_LOCALE      : $GBASELOCALE
+\$CLIENT_LOCALE  : $GBASELOCALE
+JDBC URL        : jdbc:gbasedbt-sqli://$IPADDR:$PORTNO/testdb:GBASEDBTSERVER=$GBASESERVER;DB_LOCALE=$GBASELOCALE;CLIENT_LOCALE=$GBASELOCALE;IFX_LOCK_MODE_WAIT=10
+JDBC USERNAME   : $USER_NAME
+JDBC PASSWORD   : $USER_PASS
+
+EOF
 
 exit 0
