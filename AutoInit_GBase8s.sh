@@ -3,7 +3,7 @@
 # Filename: AutoInit_GBase8s.sh
 # Function: Auto install GBase 8s software and auto init database.
 # Write by: liaojinqing@gbase.cn
-# Version : 1.3.9   update date: 2020-05-17
+# Version : 1.3.10   update date: 2020-11-09
 ##################################################################
 ##### Defind env
 export LANG=C
@@ -30,16 +30,20 @@ do
     -l)
         GBASELOCALE="$2"; shift 2
         ;;
+    -o)
+        SOFTONLY="$2";    shift 2
+        ;;
     *)
         cat <<!
 Usage:
-    AutoInit_GBase8s.sh [-d path] [-i path] [-p path] [-s y|n] [-l locale] 
+    AutoInit_GBase8s.sh [-d path] [-i path] [-p path] [-s y|n] [-l locale] [-o y|n]
 
         -d path    The path of dbspace.
         -i path    The path of install software.
         -p path    The path of home path.
-        -s y|n     Value of dbspace is 1GB? Yes/No.
+        -s y|n     Value of dbspace is 1GB? Yes/No, default is Y.
         -l locale  DB_LOCALE/CLIENT_LOCALE value.
+        -o y|n     Only install software? Yes/No, default is N.
 
 !
         exit 1
@@ -264,10 +268,13 @@ EOF
 loginfo "Building ${INSTALL_DIR}/etc/sqlhosts ."
 echo "$GBASESERVER onsoctcp ${IPADDR:-0.0.0.0} ${PORTNO:-9088}" > $INSTALL_DIR/etc/sqlhosts
 chown ${USER_NAME}:${USER_NAME} $INSTALL_DIR/etc/sqlhosts
+chmod 0644 $INSTALL_DIR/etc/sqlhosts
 
 # onconfig
 CFGFILE=$INSTALL_DIR/etc/onconfig.$GBASESERVER
 cp $INSTALL_DIR/etc/onconfig.std $CFGFILE
+chown ${USER_NAME}:${USER_NAME} $CFGFILE
+chmod 0644 $CFGFILE
 loginfo "Building $CFGFILE ."
 
 sed -i "s#^ROOTPATH.*#ROOTPATH $DATADIR/rootchk#g" $CFGFILE
@@ -290,6 +297,16 @@ touch plogchk llogchk sbspace01 tempchk01 datachk01
 chown ${USER_NAME}:${USER_NAME} rootchk plogchk llogchk sbspace01 tempchk01 datachk01
 chmod 660 rootchk plogchk llogchk sbspace01 tempchk01 datachk01
 cd $TMPDIR
+
+if [ "x$SOFTONLY" = xy -o "x$SOFTONLY" = xY ];then
+  loginfo "GBase 8s Database software install finished."
+  cat <<!
+
+  You MUST manually initialize the database!
+
+!
+  exit 0;
+fi
 
 # oninit
 loginfo "Start run database init: oninit -ivy"

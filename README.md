@@ -225,11 +225,14 @@ Usage:
         -d path    The path of dbspace.
         -i path    The path of install software.
         -p path    The path of home path.
-        -s y|n     Value of dbspace is 1GB? Yes/No.
+        -s y|n     Value of dbspace is 1GB? Yes/No, default is Y.
         -l locale  DB_LOCALE/CLIENT_LOCALE value.
+        -o y|n     Only install software? Yes/No, default is N.
+
 ```
 -d	指定数据库空间目录，默认为/data/gbase（若该目录非空，则使用INSTALL_DIR/data）  
 -i	指定数据库软件安装目录INSTALL_DIR，默认为/opt/gbase  
 -p	指定数据库用户gbasedbt的HOME目录，默认为/home/gbase  
 -s	数据库空间是否均使用1GB，默认是y（所有数据库空间均使用1GB大小）  
 -l	指定数据库的DB_LOCALE/CLIENT_LOCALE参数值，默认为zh_CN.utf8  
+-o  指定仅安装数据库，而不进行初始化操作，默认是n（安装并初始化数据库）  
