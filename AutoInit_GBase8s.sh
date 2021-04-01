@@ -3,7 +3,7 @@
 # Filename: AutoInit_GBase8s.sh
 # Function: Auto install GBase 8s software and auto init database.
 # Write by: liaojinqing@gbase.cn
-# Version : 1.3.10   update date: 2020-11-09
+# Version : 1.3.11   update date: 2021-03-18
 ##################################################################
 ##### Defind env
 export LANG=C
@@ -33,15 +33,19 @@ do
     -o)
         SOFTONLY="$2";    shift 2
         ;;
+    -u)
+        USER_NAME="$2";   shift 2
+        ;;
     *)
         cat <<!
 Usage:
-    AutoInit_GBase8s.sh [-d path] [-i path] [-p path] [-s y|n] [-l locale] [-o y|n]
+    AutoInit_GBase8s.sh [-d path] [-i path] [-p path] [-s y|n] [-l locale] [-u user] [-o y|n]
 
         -d path    The path of dbspace.
         -i path    The path of install software.
         -p path    The path of home path.
         -s y|n     Value of dbspace is 1GB? Yes/No, default is Y.
+        -u user    The user name for SYSDBA, gbasedbt/informix, default is gbasedbt
         -l locale  DB_LOCALE/CLIENT_LOCALE value.
         -o y|n     Only install software? Yes/No, default is N.
 
@@ -51,7 +55,14 @@ Usage:
   esac
 done
 ##### Define Parameter
-USER_NAME=gbasedbt
+USER_NAME=${USER_NAME:-gbasedbt}
+if [ x"$USER_NAME" = "xgbasedbt" -o x"$USER_NAME" = "xinformix" ]; then
+   loginfo "The SYSDBA user is: $USER_NAME"
+else
+   echo "Username error!"
+   exit 1
+fi
+USER_UPPER=$(echo $USER_NAME|tr [a-z] [A-Z])
 USER_HOME=${USER_HOME:-/home/gbase}
 USER_PASS=GBase123
 INSTALL_DIR=${INSTALL_DIR:-/opt/gbase}
@@ -127,8 +138,8 @@ if [ ! x"${ENVCHECK}" = x ]; then
 fi
 
 # IP use first IPADDR
-IPADDR=$(ifconfig -a | awk '/inet /{print (split($2,a,":")>1)?a[2]:$2;exit}')
-loginfo "IPADDR: ${IPADDR}"
+IPADDR=$(ifconfig -a | awk '/inet /{printf (split($2,a,":")>1)?a[2]:$2" "}')
+loginfo "IPADDR: 0.0.0.0"
 loginfo "Datadir: $DATADIR"
 
 ##### Get env
@@ -250,23 +261,21 @@ echo "USERS:daemon" > /etc/${USER_NAME}/allowed.surrogates
 # profile
 loginfo "Building ~${USER_NAME}/.bash_profile ."
 cat >> $USER_HOME/.bash_profile <<EOF 2>/dev/null
-export $(echo $USER_NAME | tr [a-z] [A-Z])DIR=${INSTALL_DIR}
-export $(echo $USER_NAME | tr [a-z] [A-Z])SERVER=${GBASESERVER}
-export ONCONFIG=onconfig.\${$(echo $USER_NAME | tr [a-z] [A-Z])SERVER}
-export PATH=\${$(echo $USER_NAME | tr [a-z] [A-Z])DIR}/bin:\${PATH}
+export ${USER_UPPER}DIR=${INSTALL_DIR}
+export ${USER_UPPER}SERVER=${GBASESERVER}
+export ONCONFIG=onconfig.\$${USER_UPPER}SERVER
+export PATH=\$${USER_UPPER}DIR/bin:\${PATH}
 
 export DB_LOCALE=${GBASELOCALE}
 export CLIENT_LOCALE=${GBASELOCALE}
 export GL_USEGLU=1
 export DBDATE="Y4MD-"
-export GL_DATE="%iY-%m-%d"
-export GL_DATETIME="%iY-%m-%d %H:%M:%S"
 export DBACCESS_SHOW_TIME=1
 EOF
 
 # sqlhosts
 loginfo "Building ${INSTALL_DIR}/etc/sqlhosts ."
-echo "$GBASESERVER onsoctcp ${IPADDR:-0.0.0.0} ${PORTNO:-9088}" > $INSTALL_DIR/etc/sqlhosts
+echo "$GBASESERVER onsoctcp 0.0.0.0 ${PORTNO:-9088}" > $INSTALL_DIR/etc/sqlhosts
 chown ${USER_NAME}:${USER_NAME} $INSTALL_DIR/etc/sqlhosts
 chmod 0644 $INSTALL_DIR/etc/sqlhosts
 
@@ -423,19 +432,19 @@ sed -i "s#^LOGBUFF.*#LOGBUFF 1024#g" $CFGFILE
 sed -i "s#^DBSPACETEMP.*#DBSPACETEMP tempdbs01#g" $CFGFILE
 sed -i "s#^SBSPACENAME.*#SBSPACENAME sbspace01#g" $CFGFILE
 sed -i "s#^SYSSBSPACENAME.*#SYSSBSPACENAME sbspace01#g" $CFGFILE
-sed -i "s#^NUMFDSERVERS.*#NUMFDSERVERS 32#g" $CFGFILE
+# sed -i "s#^NUMFDSERVERS.*#NUMFDSERVERS 32#g" $CFGFILE
 sed -i "s#^MULTIPROCESSOR.*#MULTIPROCESSOR 1#g" $CFGFILE
 sed -i "s#^AUTO_TUNE.*#AUTO_TUNE 0#g" $CFGFILE
 sed -i "s#^CLEANERS.*#CLEANERS 32#g" $CFGFILE
 sed -i "s#^STACKSIZE.*#STACKSIZE 512#g" $CFGFILE
 sed -i "s#^ALLOW_NEWLINE.*#ALLOW_NEWLINE 1#g" $CFGFILE
-sed -i 's#^USELASTCOMMITTED.*#USELASTCOMMITTED "COMMITTED READ"#g' $CFGFILE
+# sed -i 's#^USELASTCOMMITTED.*#USELASTCOMMITTED "COMMITTED READ"#g' $CFGFILE
 sed -i "s#^DS_MAX_QUERIES.*#DS_MAX_QUERIES 5#g" $CFGFILE
 sed -i "s#^DS_TOTAL_MEMORY.*#DS_TOTAL_MEMORY 1024000#g" $CFGFILE
 sed -i "s#^DS_NONPDQ_QUERY_MEM.*#DS_NONPDQ_QUERY_MEM 256000#g" $CFGFILE
 sed -i "s#^TEMPTAB_NOLOG.*#TEMPTAB_NOLOG 1#g" $CFGFILE
 sed -i "s#^DUMPSHMEM.*#DUMPSHMEM 0#g" $CFGFILE
-sed -i "s#^IFX_FOLDVIEW.*#IFX_FOLDVIEW 0#g" $CFGFILE
+# sed -i "s#^IFX_FOLDVIEW.*#IFX_FOLDVIEW 0#g" $CFGFILE
 
 if [ $NUMMEM -le 4096 ]; then
   sed -i "s#^DS_TOTAL_MEMORY.*#DS_TOTAL_MEMORY 128000#g" $CFGFILE
@@ -478,15 +487,15 @@ loginfo "Finish."
 cat <<EOF
 
 --== GBase 8s Information for this install ==--
-\$GBASEDBTSERVER : $GBASESERVER
-\$GBASEDBTDIR    : $INSTALL_DIR
+\$${USER_UPPER}SERVER : $GBASESERVER
+\$${USER_UPPER}DIR    : $INSTALL_DIR
 USER HOME       : $USER_HOME
 DBSPACE DIR     : $DATADIR
 IP ADDRESS      : $IPADDR
 PORT NUMBER     : $PORTNO
 \$DB_LOCALE      : $GBASELOCALE
 \$CLIENT_LOCALE  : $GBASELOCALE
-JDBC URL        : jdbc:gbasedbt-sqli://$IPADDR:$PORTNO/testdb:GBASEDBTSERVER=$GBASESERVER;DB_LOCALE=$GBASELOCALE;CLIENT_LOCALE=$GBASELOCALE;IFX_LOCK_MODE_WAIT=10
+JDBC URL        : jdbc:${USER_NAME}-sqli://IPADDR:$PORTNO/testdb:${USER_UPPER}SERVER=$GBASESERVER;DB_LOCALE=$GBASELOCALE;CLIENT_LOCALE=$GBASELOCALE;IFX_LOCK_MODE_WAIT=10
 JDBC USERNAME   : $USER_NAME
 JDBC PASSWORD   : $USER_PASS
 

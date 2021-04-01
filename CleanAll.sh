@@ -1,12 +1,33 @@
 #!/bin/bash
-#
+##################################################################
 # Filename: CleanAll.sh
 # Function: Clean GBase 8s Auto Install.
-#
+# Write by: liaojinqing@gbase.cn
+# Version : 1.3.11   update date: 2021-03-18
+##################################################################
 ##### Define Parameter
-USER_NAME=$(awk -F'=' '/^USER_NAME/{print $2}' AutoInit_GBase8s.sh)
-USER_HOME=$(awk -F'=' '/^USER_HOME/{print $2}' AutoInit_GBase8s.sh)
-#INSTALL_DIR=$(awk -F'=' '/^INSTALL_DIR/{print $2}' AutoInit_GBase8s.sh)
+##### Get Parameter
+while [[ $# -gt 0 ]]
+do
+  key="$1"
+  case $key in
+    -u)
+        USER_NAME="$2";   shift 2
+        ;;
+    *)
+        cat <<!
+Usage:
+    CleanAll.sh [-u user]
+
+        -u user    The user name for SYSDBA, gbasedbt/informix, default is gbasedbt
+
+!
+        exit 1
+        ;;
+  esac
+done
+
+USER_NAME=${USER_NAME:-gbasedbt}
 INSTALL_DIR=/opt/gbase
 WORKDIR=$(pwd)
 
