@@ -4,13 +4,13 @@
 适用性：适用于x86_64架构下的RHEL6(或者类似的CentOS)操作系统环境。  
 
 ### 完成后的JDBC连接
-DriverName：
-gbasedbt: com.gbasedbt.jdbc.Driver
-informix: com.informix.jdbc.IfxDriver
-jdbc:<USERNAME>-sqli://<IPADDR>:9088/<DBNAME>:<USERNAME_UPPER>SERVER=gbase01;DB_LOCALE=zh_CN.utf8;CLIENT_LOCALE=zh_CN.utf8;IFX_LOCK_MODE_WAIT=10;IFX_ISOLATION_LEVEL=5;
-其中：<IPADDR>为实际IP地址，<DBNAME>为数据库名称，<USERNAME>为gbasedbt或者informix
-用户名称：<USERNAME>
-用户密码：GBase123
+DriverName：  
+gbasedbt: com.gbasedbt.jdbc.Driver  
+informix: com.informix.jdbc.IfxDriver  
+jdbc:<USERNAME>-sqli://<IPADDR>:9088/<DBNAME>:<USERNAME_UPPER>SERVER=gbase01;DB_LOCALE=zh_CN.utf8;CLIENT_LOCALE=zh_CN.utf8;IFX_LOCK_MODE_WAIT=10;IFX_ISOLATION_LEVEL=5;  
+其中：<IPADDR>为实际IP地址，<DBNAME>为数据库名称，<USERNAME>为gbasedbt或者informix  
+用户名称：<USERNAME>  
+用户密码：GBase123  
 
 ## 使用说明：
 ### 1，将脚本AutoInit_GBase8s.sh与GBase 8s安装包放置同一目录下。
@@ -38,7 +38,7 @@ total 309172
 ```
 说明：不带参数将使用默认的DATADIR=/data/gbase，该目录用于存放数据库空间文件。或者实际不使用该目录，应加参数指定，如： AutoInit_GBase8s.sh -d /gbasedata/dbs 指定使用的空间为/gbasedata/dbs。  
 注：指定的目录应有足够的空间，不少于100G。  
-安装过程中将打印安装过程，日志如下：
+安装过程中将打印安装过程，日志如下：  
 ```text
 [root@bd ~]# bash AutoInit_GBase8s.sh
 [2020-12-13 12:27:41] The SYSDBA user is: gbasedbt
@@ -163,7 +163,7 @@ JDBC URL        : jdbc:gbasedbt-sqli://IPADDR:9088/testdb:GBASEDBTSERVER=gbase01
 JDBC USERNAME   : gbasedbt
 JDBC PASSWORD   : GBase123
 ```
-创建的数据库状态如下：
+创建的数据库状态如下：  
 ```text
 [root@a02 ~]# su - gbasedbt
 [gbasedbt@a02 ~]$ onstat -d
@@ -237,10 +237,10 @@ Usage:
         -o y|n     Only install software? Yes/No, default is N.
 
 ```
--d	指定数据库空间目录，默认为/data/gbase（若该目录非空，则使用INSTALL_DIR/data）
--i	指定数据库软件安装目录INSTALL_DIR，默认为/opt/gbase
--p	指定数据库用户gbasedbt的HOME目录，默认为/home/gbase
--s	数据库空间是否均使用1GB，默认是y（所有数据库空间均使用1GB大小）
--u  指定数据库系统管理员的名称，仅限gbasedbt和informix
--l	指定数据库的DB_LOCALE/CLIENT_LOCALE参数值，默认为zh_CN.utf8
--o  指定仅安装数据库，而不进行初始化操作，默认是n（安装并初始化数据库）
+-d	指定数据库空间目录，默认为/data/gbase（若该目录非空，则使用INSTALL_DIR/data）  
+-i	指定数据库软件安装目录INSTALL_DIR，默认为/opt/gbase  
+-p	指定数据库用户gbasedbt的HOME目录，默认为/home/gbase  
+-s	数据库空间是否均使用1GB，默认是y（所有数据库空间均使用1GB大小）  
+-u  指定数据库系统管理员的名称，仅限gbasedbt和informix  
+-l	指定数据库的DB_LOCALE/CLIENT_LOCALE参数值，默认为zh_CN.utf8  
+-o  指定仅安装数据库，而不进行初始化操作，默认是n（安装并初始化数据库）  
